@@ -1,5 +1,5 @@
 //
-//  ContentView.swift
+//  AppToastModifier.swift
 //  SwiftUI_ToastManagerExample
 //
 //  Created by cano on 2026/06/04.
@@ -7,16 +7,44 @@
 
 import SwiftUI
 
-struct ContentView: View {
+// ==========================================
+// 6. 共通Modifierとしてカプセル化
+// ==========================================
+/// アプリの基本View階層の最前面に対して、トースト管理コンポーネントをOverlay（重ね合わせ）する修飾子
+struct AppToastOverlayModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        ZStack {
+            content // 各画面のメインUI
+            
+            // 常に最前面をキープするトーストコンポーネントの配置
+            ToastContainerView()
+        }
+    }
+}
+
+extension View {
+    /// 画面に対してトースト通知レイヤーシステムを一括組み込みする共通関数
+    public func applyToastSystem() -> some View {
+        self.modifier(AppToastOverlayModifier())
+    }
+}
+
+// ==========================================
+// 7. 社内研修・動作確認用のテストView
+// ==========================================
+struct ToastTestView: View {
     // パターン①の個別タップアクションからトリガーされる「別画面（ハーフシート）」の開閉管理フラグ
     @State private var openDetailSheet = false
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 25) {
+                Text("研修用：引数カスタム検証")
+                    .font(.headline)
+                    .foregroundColor(.gray)
                 
-                // 検証A：【画面下部】×【背景グレーあり】×【タップ時に別画面（シート）を展
-                MenuButton(title: "検証A：下部 / グレーあり / タップで別画面起動", tint: .green) {
+                // 検証A：【画面下部】×【背景グレーあり】×【タップ時に別画面（シート）を展開】
+                Button("検証A：下部 / グレーあり / タップで別画面起動") {
                     AppToastManager.shared.showBasic(
                         style: .success,
                         title: "タスクを保存しました",
@@ -29,10 +57,11 @@ struct ContentView: View {
                         }
                     )
                 }
-            
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
                 
                 // 検証B：【画面上部】×【背景グレーなし（重ねて表示するだけ）】×【タップ動作なし】
-                MenuButton(title: "検証B：上部 / グレーなし / タップ動作なし", tint: .red) {
+                Button("検証B：上部 / グレーなし / タップ動作なし") {
                     AppToastManager.shared.showMultiple(
                         style: .error,
                         title: "同期エラーが3件発生",
@@ -45,9 +74,11 @@ struct ContentView: View {
                         onTapAction: nil
                     )
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(.red)
                 
                 // 検証C：【画面上部】×【背景グレーあり】×【デフォルトの詳細履歴展開】
-                MenuButton(title: "検証C：上部 / グレーあり / 通常の詳細展開", tint: .blue) {
+                Button("検証C：上部 / グレーあり / 通常の詳細展開") {
                     AppToastManager.shared.showBasic(
                         style: .info,
                         title: "システムメンテナンス通知",
@@ -57,47 +88,10 @@ struct ContentView: View {
                         onTapAction: nil // nilにすることで、デフォルトの openDetail() が走りグレー背景が機能します
                     )
                 }
-                
-                // 検証D：【画面下部】×【背景グレーあり】×【背景タップで一括クリア】
-                MenuButton(title: "検証D：下部 / グレーあり / 背景タップでトースト消去", tint: .mint) {
-                    AppToastManager.shared.showBasic(
-                        style: .info,
-                        title: "アップデートを検出",
-                        description: "画面のグレー部分をタップすると、このトーストごと消去されます。",
-                        position: .bottom,
-                        showOverlayBackground: true, // グレーあり
-                        onTapAction: nil
-                    )
-                }
-                
-                // 検証E：【背景グレーなし】×【背景タップでトースト消去する】
-                MenuButton(title: "検証E：下部 / グレーなし / 背景タップでトースト消去", tint: .orange) {
-                    AppToastManager.shared.showBasic(
-                        style: .success,
-                        title: "設定を同期しました",
-                        description: "見た目はグレーになりませんが、空きスペースを叩くと消去されます。",
-                        position: .bottom,
-                        showOverlayBackground: false, // グレーなし
-                        closeOnBackgroundTap: true,   // 背景タップで閉じる！
-                        onTapAction: nil
-                    )
-                }
-
-                // 【新設パターン】【背景グレーあり】×【背景タップされても絶対に閉じない】
-                MenuButton(title: "検証F：上部 / グレーあり / 背景タップしても閉じないガード", tint: .brown) {
-                    AppToastManager.shared.showBasic(
-                        style: .error,
-                        title: "重要なセキュリティ警告",
-                        description: "背景のグレー部分をいくら叩いても、×ボタンを押すまで消えません。",
-                        position: .top,
-                        showOverlayBackground: true,  // グレーあり
-                        closeOnBackgroundTap: false,  // 背景タップを無視して閉じない！
-                        onTapAction: nil
-                    )
-                }
+                .buttonStyle(.bordered)
             }
             .padding()
-            .navigationTitle("Toast Control Example")
+            .navigationTitle("トーストコントロール")
             // 検証Aのタップで呼び出される別画面コンポーネント
             .sheet(isPresented: $openDetailSheet) {
                 NavigationStack {
@@ -111,11 +105,7 @@ struct ContentView: View {
                 .presentationDetents([.medium])
             }
         }
-        //  アプリの大元にこれ1行を繋ぐだけで、引数に応じたすべての挙動がViewを汚さずに有効化されます
+        // アプリの大元にこれ1行を繋ぐだけで、引数に応じたすべての挙動がViewを汚さずに有効化されます
         .applyToastSystem()
     }
-}
-
-#Preview {
-    ContentView()
 }
