@@ -12,4 +12,4 @@ AppToastManager.shared.showBasic(
 )
 ```
 
-<img height="400" alt="Image" src="https://github.com/user-attachments/assets/9f0a1b33-b144-42de-955c-70b85894c08a" />
+<img width="320" alt="Image" src="https://github.com/user-attachments/assets/9f0a1b33-b144-42de-955c-70b85894c08a" />
